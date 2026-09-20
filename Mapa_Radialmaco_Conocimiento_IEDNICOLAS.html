@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Radial TIC-STEM | IED Nicolás Buenaventura</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .mapa-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .mapa-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .mapa-visual {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 500px;
+            justify-self: center;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.15));
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #f9f9f9 0%, #f0f0f0 100%);
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 6px solid #e74c3c;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .info-panel h2 {
+            color: #e74c3c;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e74c3c;
+            padding-bottom: 10px;
+        }
+
+        .info-panel p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+
+        .docentes-list {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 10px 0;
+            border-left: 4px solid #27ae60;
+        }
+
+        .docentes-list h4 {
+            color: #27ae60;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .docentes-list li {
+            list-style: none;
+            margin-left: 0;
+            padding: 4px 0;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .docentes-list li:before {
+            content: "✓ ";
+            color: #27ae60;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95em;
+            font-weight: 600;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+
+        .legend-color.verde {
+            background: #27ae60;
+        }
+
+        .legend-color.amarillo {
+            background: #f39c12;
+        }
+
+        .legend-color.rojo {
+            background: #e74c3c;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        /* Elementos SVG interactivos */
+        .capacidad-label {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .capacidad-label text {
+            transition: all 0.3s ease;
+        }
+
+        .capacidad-label:hover text {
+            font-weight: bold;
+            filter: drop-shadow(0 0 4px rgba(0,0,0,0.5));
+        }
+
+        .area-label {
+            cursor: pointer;
+            user-select: none;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .area-label:hover {
+            opacity: 1;
+        }
+
+        @media (max-width: 900px) {
+            .mapa-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .header p {
+                font-size: 0.95em;
+            }
+
+            .info-panel {
+                max-height: none;
+            }
+        }
+
+        /* Scrollbar personalizado */
+        .info-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .info-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb {
+            background: #e74c3c;
+            border-radius: 3px;
+        }
+
+        .info-panel::-webkit-scrollbar-thumb:hover {
+            background: #c0392b;
+        }
+
+        .btn-reset {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+            width: 100%;
+            transition: background 0.3s ease;
+        }
+
+        .btn-reset:hover {
+            background: #c0392b;
+        }
+
+        .estado-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .estado-badge.verde {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .estado-badge.amarillo {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .estado-badge.rojo {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ MAPA DE GESTIÓN DE CONOCIMIENTO</h1>
+            <p>COMPETENCIAS TIC-STEM | SISTEMA INTEGRADO</p>
+        </div>
+
+        <div class="mapa-container">
+            <div class="mapa-grid">
+                <div class="mapa-visual">
+                    <svg id="mapa" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Fondo hexágonos decorativos -->
+                        <defs>
+                            <linearGradient id="gradVerde" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#27ae60;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#229954;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="gradAmarillo" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#f39c12;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e67e22;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="gradRojo" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#e74c3c;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c0392b;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Círculos de fondo (anillos) -->
+                        <circle cx="250" cy="250" r="240" fill="none" stroke="#eee" stroke-width="1" opacity="0.5"/>
+                        <circle cx="250" cy="250" r="180" fill="none" stroke="#eee" stroke-width="1" opacity="0.5"/>
+                        <circle cx="250" cy="250" r="120" fill="none" stroke="#eee" stroke-width="1" opacity="0.5"/>
+                        <circle cx="250" cy="250" r="60" fill="none" stroke="#eee" stroke-width="1" opacity="0.5"/>
+
+                        <!-- Centro: SISTEMA -->
+                        <circle cx="250" cy="250" r="50" fill="url(#gradRojo)"/>
+                        <text x="250" y="245" text-anchor="middle" font-size="14" font-weight="bold" fill="white">SISTEMA</text>
+                        <text x="250" y="262" text-anchor="middle" font-size="12" font-weight="bold" fill="white">TIC-STEM</text>
+
+                        <!-- ANILLO 1: SECTORES (TIC vs STEM) -->
+                        <!-- Sector TIC (izquierda) -->
+                        <path d="M 250 250 L 250 60 A 190 190 0 0 0 70 250 Z" fill="#ffe0d0" opacity="0.3"/>
+                        <text x="120" y="140" text-anchor="middle" font-size="16" font-weight="bold" fill="#e74c3c">TIC</text>
+
+                        <!-- Sector STEM (derecha) -->
+                        <path d="M 250 250 L 250 60 A 190 190 0 0 1 430 250 Z" fill="#d4f1d4" opacity="0.3"/>
+                        <text x="380" y="140" text-anchor="middle" font-size="16" font-weight="bold" fill="#27ae60">STEM</text>
+
+                        <!-- ANILLO 2: CAPACIDADES (10 items) -->
+                        <!-- Orden: 5 TIC (izq) + 5 STEM (der) -->
+                    </svg>
+                </div>
+
+                <div class="info-panel">
+                    <h2>ℹ️ Detalles</h2>
+                    <div id="info-content">
+                        <p style="color: #999; text-align: center; margin-top: 50px; font-style: italic;">
+                            Haz clic en una capacidad para ver detalles, docentes referentes y rutas de formación.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color verde"></div>
+                    <span>Fortalecido (≥70% explícito)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color amarillo"></div>
+                    <span>Tácito (30-70% explícito)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color rojo"></div>
+                    <span>Crítico (&lt;30% explícito)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>IED Nicolás Buenaventura</strong> | Santa Marta, Magdalena</p>
+            <p>🎯 Planificación Formativa Docente 2025 | Creador: Arvery</p>
+        </div>
+    </div>
+
+    <script>
+        const capacidades = [
+            // TIC (lado izquierdo)
+            { id: 'TIC-01', nombre: 'Selección herramientas', tipo: 'TIC', exp: 14, tac: 4, estado: 'verde', porcentaje: 78 },
+            { id: 'TIC-02', nombre: 'Creación recursos', tipo: 'TIC', exp: 10, tac: 10, estado: 'amarillo', porcentaje: 50 },
+            { id: 'TIC-05', nombre: 'Planeación TIC', tipo: 'TIC', exp: 6, tac: 11, estado: 'amarillo', porcentaje: 35 },
+            { id: 'TIC-07', nombre: 'Evaluación TIC', tipo: 'TIC', exp: 8, tac: 11, estado: 'amarillo', porcentaje: 42 },
+            { id: 'TIC-18', nombre: 'Sistematización', tipo: 'TIC', exp: 7, tac: 8, estado: 'amarillo', porcentaje: 47 },
+            // STEM (lado derecho)
+            { id: 'STEM-02', nombre: 'Análisis problema', tipo: 'STEM', exp: 8, tac: 9, estado: 'amarillo', porcentaje: 47 },
+            { id: 'STEM-03', nombre: 'Soluciones', tipo: 'STEM', exp: 11, tac: 5, estado: 'amarillo', porcentaje: 69 },
+            { id: 'STEM-06', nombre: 'Interdisciplina', tipo: 'STEM', exp: 10, tac: 6, estado: 'amarillo', porcentaje: 62 },
+            { id: 'STEM-10', nombre: 'Prototipado', tipo: 'STEM', exp: 11, tac: 4, estado: 'verde', porcentaje: 73 },
+            { id: 'STEM-15', nombre: 'Empatía/Ideación', tipo: 'STEM', exp: 8, tac: 5, estado: 'amarillo', porcentaje: 62 }
+        ];
+
+        const areas = [
+            'Ciencias Naturales',
+            'Ciencias Sociales',
+            'Educación Básica',
+            'Emprendimiento',
+            'Lenguaje',
+            'Matemáticas',
+            'Tecnología e Informática'
+        ];
+
+        const docentes = {
+            'TIC-01': { exp: ['Diana Carolina', 'Natalia Andrea', 'Sandra Milena', 'Adargenis', 'Claudia Patricia', 'Wilson Alexander', 'Carlos Andrés', 'Jhon Arvery', 'Sergio Manuel', 'Libardo', 'Maithe', 'Ana María', 'Andrés Felipe', 'Jorge Eliécer'], tac: ['Miguel Ángel', 'Luis Eduardo', 'José Gregorio', 'María Fernanda'] },
+            'TIC-02': { exp: ['José Gregorio', 'Ana María', 'Edgardo', 'Jorge Eliécer', 'Sergio Manuel', 'Claudia Patricia', 'Libardo', 'Luis Eduardo', 'Natalia Andrea', 'Jhon'], tac: ['Carlos Andrés', 'Diana Carolina', 'Maithe', 'María Fernanda', 'Adargenis', 'Jhon Arvery', 'Sandra Milena', 'Andrés Felipe', 'Miguel Ángel'] },
+            'TIC-05': { exp: ['Wilson Alexander', 'José Gregorio', 'Carlos Andrés', 'Claudia Patricia', 'Diana Carolina', 'Natalia Andrea'], tac: ['María Fernanda', 'Sergio Manuel', 'Jhon Arvery', 'Libardo', 'Edgardo', 'Luis Eduardo', 'Andrés Felipe', 'Maithe', 'Adargenis', 'Miguel Ángel', 'Sandra Milena'] },
+            'TIC-07': { exp: ['Jhon Arvery', 'Adargenis', 'Claudia Patricia', 'Sergio Manuel', 'Andrés Felipe', 'Miguel Ángel'], tac: ['Diana Carolina', 'Libardo', 'Natalia Andrea', 'Maithe', 'Ana María', 'Jorge Eliécer', 'María Fernanda', 'José Gregorio', 'Luis Eduardo', 'Carlos Andrés', 'Edgardo', 'Sandra Milena'] },
+            'TIC-18': { exp: ['José Gregorio', 'Ana María', 'Jhon Arvery', 'Carlos Andrés', 'María Fernanda', 'Natalia Andrea', 'Adargenis'], tac: ['Sandra Milena', 'Sergio Manuel', 'Andrés Felipe', 'Jorge Eliécer', 'Maithe', 'Claudia Patricia', 'Diana Carolina', 'Edgardo', 'Luis Eduardo', 'Wilson Alexander'] },
+            'STEM-02': { exp: ['Maithe', 'Wilson Alexander', 'Claudia Patricia', 'Diana Carolina', 'José Gregorio', 'Sergio Manuel', 'Jorge Eliécer', 'Andrés Felipe'], tac: ['Luis Eduardo', 'María Fernanda', 'Miguel Ángel', 'Carlos Andrés', 'Natalia Andrea', 'Ana María', 'Edgardo', 'Jhon Arvery'] },
+            'STEM-03': { exp: ['Adargenis', 'Ana María', 'Jhon Arvery', 'José Gregorio', 'María Fernanda', 'Sandra Milena', 'Sergio Manuel', 'Diana Carolina', 'Wilson Alexander', 'Libardo', 'Edgardo'], tac: ['Carlos Andrés', 'Natalia Andrea', 'Miguel Ángel', 'Andrés Felipe', 'Claudia Patricia', 'Maithe'] },
+            'STEM-06': { exp: ['Luis Eduardo', 'Carlos Andrés', 'Jorge Eliécer', 'Wilson Alexander', 'Diana Carolina', 'Maithe', 'Adargenis', 'Sergio Manuel', 'Jhon Arvery', 'Libardo'], tac: ['Andrés Felipe', 'Ana María', 'Natalia Andrea', 'Claudia Patricia', 'Miguel Ángel', 'María Fernanda', 'Sandra Milena'] },
+            'STEM-10': { exp: ['Adargenis', 'Carlos Andrés', 'Jhon Arvery', 'Maithe', 'Libardo', 'Miguel Ángel', 'José Gregorio', 'Natalia Andrea', 'Sergio Manuel', 'Andrés Felipe', 'Luis Eduardo'], tac: ['Jorge Eliécer', 'Claudia Patricia', 'Ana María', 'María Fernanda', 'Diana Carolina', 'Sandra Milena', 'Wilson Alexander'] },
+            'STEM-15': { exp: ['Ana María', 'Jhon Arvery', 'Libardo', 'Carlos Andrés', 'Diana Carolina', 'Luis Eduardo', 'Claudia Patricia', 'José Gregorio', 'Sandra Milena', 'Sergio Manuel'], tac: ['Edgardo', 'María Fernanda', 'Andrés Felipe', 'Maithe', 'Natalia Andrea', 'Wilson Alexander', 'Miguel Ángel', 'Adargenis'] }
+        };
+
+        function dibujarMapa() {
+            const svg = document.getElementById('mapa');
+            const cx = 250, cy = 250;
+            const r1 = 150; // Radio capacidades
+
+            // Dibujar capacidades
+            capacidades.forEach((cap, index) => {
+                let angle;
+                if (cap.tipo === 'TIC') {
+                    // 5 TIC distribuidas en 180° (izquierda)
+                    angle = (index / 5) * Math.PI - Math.PI / 2;
+                } else {
+                    // 5 STEM distribuidas en 180° (derecha)
+                    const stemIndex = index - 5;
+                    angle = (stemIndex / 5) * Math.PI + Math.PI / 2;
+                }
+
+                const x = cx + Math.cos(angle) * r1;
+                const y = cy + Math.sin(angle) * r1;
+
+                // Determinar color
+                let color;
+                if (cap.estado === 'verde') color = '#27ae60';
+                else if (cap.estado === 'amarillo') color = '#f39c12';
+                else color = '#e74c3c';
+
+                // Dibujar círculo
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', y);
+                circle.setAttribute('r', 28);
+                circle.setAttribute('fill', color);
+                circle.setAttribute('stroke', 'white');
+                circle.setAttribute('stroke-width', '3');
+                circle.style.cursor = 'pointer';
+                circle.style.transition = 'all 0.3s ease';
+
+                circle.addEventListener('mouseover', function() {
+                    this.setAttribute('r', 35);
+                    this.style.filter = 'drop-shadow(0 0 12px rgba(0,0,0,0.3))';
+                });
+
+                circle.addEventListener('mouseout', function() {
+                    this.setAttribute('r', 28);
+                    this.style.filter = 'none';
+                });
+
+                circle.addEventListener('click', function() {
+                    mostrarDetalles(cap);
+                });
+
+                svg.appendChild(circle);
+
+                // Etiqueta (ID)
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', y + 5);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '13');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('fill', 'white');
+                text.textContent = cap.id;
+                text.style.cursor = 'pointer';
+                text.style.pointerEvents = 'none';
+
+                svg.appendChild(text);
+
+                // Etiqueta (nombre - anillo exterior)
+                const r2 = 220;
+                const x2 = cx + Math.cos(angle) * r2;
+                const y2 = cy + Math.sin(angle) * r2;
+
+                const textNombre = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textNombre.setAttribute('x', x2);
+                textNombre.setAttribute('y', y2 + 4);
+                textNombre.setAttribute('text-anchor', 'middle');
+                textNombre.setAttribute('font-size', '10');
+                textNombre.setAttribute('fill', '#333');
+                textNombre.textContent = cap.nombre;
+                textNombre.style.cursor = 'pointer';
+
+                textNombre.addEventListener('click', function() {
+                    mostrarDetalles(cap);
+                });
+
+                svg.appendChild(textNombre);
+            });
+        }
+
+        function mostrarDetalles(capacidad) {
+            const docentesExp = docentes[capacidad.id]?.exp || [];
+            const docentesTac = docentes[capacidad.id]?.tac || [];
+
+            let html = `
+                <div class="estado-badge ${capacidad.estado}">
+                    ${capacidad.estado === 'verde' ? '🟢 FORTALECIDA' : capacidad.estado === 'amarillo' ? '🟡 TÁCITA' : '🔴 CRÍTICA'} (${capacidad.porcentaje}% explícito)
+                </div>
+
+                <p><strong>Capacidad:</strong> ${capacidad.id}</p>
+                <p><strong>Nombre:</strong> ${capacidad.nombre}</p>
+                <p><strong>Tipo:</strong> ${capacidad.tipo}</p>
+
+                <p style="margin-top: 12px; font-size: 0.9em; color: #666;">
+                    <strong>📊 Diagnóstico:</strong><br/>
+                    • Explícito: <strong style="color: #27ae60;">${capacidad.exp}</strong> docentes<br/>
+                    • Tácito: <strong style="color: #f39c12;">${capacidad.tac}</strong> docentes<br/>
+                    • Total: <strong>${capacidad.exp + capacidad.tac}</strong> registros
+                </p>
+
+                ${docentesExp.length > 0 ? `
+                    <div class="docentes-list">
+                        <h4>✅ Docentes con dominio explícito (${docentesExp.length})</h4>
+                        <ul>
+                            ${docentesExp.slice(0, 8).map(d => `<li>${d}</li>`).join('')}
+                            ${docentesExp.length > 8 ? `<li><em>... y ${docentesExp.length - 8} más</em></li>` : ''}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                ${docentesTac.length > 0 ? `
+                    <div class="docentes-list" style="border-left-color: #f39c12;">
+                        <h4 style="color: #f39c12;">⚠️ Docentes con conocimiento tácito (${docentesTac.length})</h4>
+                        <ul>
+                            ${docentesTac.slice(0, 5).map(d => `<li>${d}</li>`).join('')}
+                            ${docentesTac.length > 5 ? `<li><em>... y ${docentesTac.length - 5} más</em></li>` : ''}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                <button class="btn-reset" onclick="limpiarDetalles()">← Volver</button>
+            `;
+
+            document.getElementById('info-content').innerHTML = html;
+        }
+
+        function limpiarDetalles() {
+            document.getElementById('info-content').innerHTML = `
+                <p style="color: #999; text-align: center; margin-top: 50px; font-style: italic;">
+                    Haz clic en una capacidad para ver detalles, docentes referentes y rutas de formación.
+                </p>
+            `;
+        }
+
+        // Inicializar
+        window.addEventListener('load', dibujarMapa);
+    </script>
+</body>
+</html>
